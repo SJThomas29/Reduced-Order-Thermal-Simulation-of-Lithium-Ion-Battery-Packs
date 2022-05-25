@@ -1,0 +1,16 @@
+# MATLAB/SIMULINK
+*.avi
+*.asv
+*.slxc
+*.asv
+*.m~
+*.mex*
+*.mlappinstall
+*.mltbx
+helpsearch*/
+slprj/
+sccprj/
+codegen/
+*.autosave
+*.slxc
+octave-workspace
