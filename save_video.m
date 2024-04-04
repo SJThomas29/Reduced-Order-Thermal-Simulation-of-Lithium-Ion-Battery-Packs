@@ -2,20 +2,20 @@
 close all;
 % Get inputs for the video preferences - can use script inputs
 if ~exist('script', 'var') % Skip this part if called by a script
-%     input = ["v" "y" "volTemp" "temperature" "K" "x" "y" "3" "3e-3" "hot" "300" "15" "-273.15" "y"];
-    input = string(inputdlg({'Plot type - volumes or line [v/l]' 'Include velocity? [y/n]' 'Data name - from out [""]'...
+%     input = ["y" "volTemp" "temperature" "K" "x" "y" "3" "3e-3" "hot" "300" "15" "-273.15" "y"];
+    input = string(inputdlg({'Include velocity? [y/n]' 'Data name - from out [""]'...
         'Data name for label [""]' 'Data units for label [""]' 'Plot direction 1 [x,y,z]' 'Plot direction 2 [x,y,z]'...
-        'Layer? [#]' 'Line width [m]' 'Colormap [""]' 'Frames [#]' 'Framerate [#]' 'Include coolant? [y/n]'},...
-        'Video config', [1 50], {'v' 'y' 'volTemp' 'temperature' [char (176) 'C'] 'x' 'y' '4' '3e-3' 'thermal' '450' '15' 'y'}));      
+        'Layer? [#]' 'Line width [m]' 'Colormap [""] - Thermal uses cmocean (https://uk.mathworks.com/matlabcentral/fileexchange/57773-cmocean-perceptually-uniform-colormaps)' 'Frames [#]' 'Framerate [#]' 'Include coolant? [y/n]'},...
+        'Video config', [1 50], {'y' 'volTemp' 'temperature' [char (176) 'C'] 'x' 'y' '4' '3e-3' 'thermal' '450' '15' 'y'}));      
 end
 
 % Get data using input
-data = out.(input(3)).Data;
-time = out.(input(3)).Time;
-if input(2) == "y"
+data = out.(input(2)).Data;
+time = out.(input(2)).Time;
+if input(1) == "y"
    vel = out.velocity.Data; 
 end
-if input(13) == "y"
+if input(12) == "y"
     coolOut = out.coolOutTemp.Data;
     coolIn = out.coolInTemp.Data;
     cellTemp = out.cellTemp.Data;
@@ -26,12 +26,12 @@ end
 pos.x = thermX; pos.y = thermY; pos.z = thermZ;
 
 % Define values from inputs
-dataLabel = char(input(4)); unitLabel = char(input(5));
-dir1 = char(input(6)); dir2 = char(input(7));
-layer = str2double(input(8)); 
-lineWidth = str2double(input(9)); 
-cMap = char(input(10));
-frames = str2double(input(11)); frameRate = str2double(input(12)); 
+dataLabel = char(input(3)); unitLabel = char(input(4));
+dir1 = char(input(5)); dir2 = char(input(6));
+layer = str2double(input(7)); 
+lineWidth = str2double(input(8)); 
+cMap = char(input(9));
+frames = str2double(input(10)); frameRate = str2double(input(11)); 
 
 % Define figure
 figure('WindowState', 'maximize');
@@ -44,28 +44,25 @@ for frame = 1:frames % Step through each time value
     % Display frame progress
     disp(['Frame ' num2str(frame) ' of ' num2str(frames)]);
     
-    % Define title
-%     if input(14) == "y"; fullTitle = [fullTitle ', Coolant output temp: ' num2str(round(coolOut(step),1)) ' [' char(176) 'C]']; end
-    
     % Plot data
     step = vidInds(frame);
     fullTitle = ['Time: ' num2str(time(step)) 's'];
-    if input(2) == "y" % Include velocity subplot
+    if input(1) == "y" % Include velocity subplot
         subplot(3,1,3);
         plot(time(1:step),vel(1:step));%,'k-');
         xlabel('time [s]'); 
         ylabel('velocity [m/s]');
         xlim([time(1) time(end)]);
         ylim([0 max(vel)+5]);
-        
-        if input(13) == "y" % Include coolant on other axis
+        grid on;
+
+        if input(12) == "y" && (topCool || bottomCool)  % Include coolant on other axis, if used in model
             yyaxis right;
-            ylabel(['temperature [' char(176) 'C]']);
             plot(time(1:step),meanTemp(1:step));
             hold on;
-            plot(time(1:step),coolIn(1:step));%,'b-');
-            plot(time(1:step),coolOut(1:step));%,'r-');
-            grid on;
+            plot(time(1:step),coolIn(1:step),'b-');
+            plot(time(1:step),coolOut(1:step),'m-');
+            ylabel(['temperature [' char(176) 'C]']);
             hold off;
             legend('Vehicle velocity','Mean cell temp','Coolant in temp','Coolant out temp');
             title('Graph of vehicle velocity. coolant and cell temperature');
@@ -77,24 +74,21 @@ for frame = 1:frames % Step through each time value
         subplot(3,1,[1 2]); 
     end
     
-%     if input(1) == "v" % Volume plot
-        plot_volumes(data(:,:,:,step), pos.(dir1), pos.(dir2), dir1, dir2, layer, barRange, cMap, dataLabel, unitLabel);
-%     else
-%         
-%         
-%     end
+    % Volume plot
+    plot_volumes(data(:,:,:,step), pos.(dir1), pos.(dir2), dir1, dir2, layer, barRange, cMap, dataLabel, unitLabel);
     
-    if input(2) ~= "y" % append time to single title if needed 
+    if input(1) ~= "y" % append time to single title if needed 
         figTitle = get(gca,'title');
         titleText = get(figTitle,'String');
         set(figTitle,'String',[titleText ' - ' fullTitle]);
     end
-    
-    % Add title
-        
-    % Assign frame    
-    F(frame) = getframe(gcf);
-%     cla; % Clear axis for next frame
+            
+    % Assign frame
+    if frame == 1
+        F = getframe(gcf);
+    else
+        F(frame) = getframe(gcf);
+    end
 end
 
 % Define video
